@@ -1,9 +1,11 @@
 import './App.css'
+import Demo from './context+provider+customHooks/demo'
 
 function App() {
   return (
     <>
-      <h1>Hello</h1>
+      {/* context provider customHooks */}
+      <Demo />
     </>
   )
 }
