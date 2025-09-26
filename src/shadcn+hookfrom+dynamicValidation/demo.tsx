@@ -1,7 +1,6 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '../components/ui/textarea'
@@ -14,23 +13,11 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-
-// Validation schema for the dynamic form
-const formSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Name is required')
-    .max(50, 'Name must be less than 50 characters'),
-  description: z
-    .string()
-    .min(1, 'Description is required')
-    .max(500, 'Description must be less than 500 characters'),
-})
-
-type DynamicFormData = z.infer<typeof formSchema>
+import { presetSchemas, validateFormData } from './schemas'
+import type { DynamicFormData, FieldConfiguration } from './schemas'
 
 /**
- * Demo component showcasing React Hook Form with shadcn/ui and dynamic field arrays
+ * Demo component showcasing React Hook Form with shadcn/ui and dynamic schema validation from separate file
  */
 function Demo() {
   const [submittedData, setSubmittedData] = useState<DynamicFormData | null>(
@@ -38,13 +25,23 @@ function Demo() {
   )
 
   // Control state for which fields to show
-  const [fieldControls, setFieldControls] = useState({
+  const [fieldControls, setFieldControls] = useState<FieldConfiguration>({
     name: true, // Control for single name field
   })
 
-  const form = useForm<DynamicFormData>({
+  // Dynamic validation schema based on field controls - using external schema file
+  const createFormSchema = useCallback((showName: boolean) => {
+    if (showName) {
+      return presetSchemas.full
+    }
+    return presetSchemas.minimal
+  }, [])
+
+  const formSchema = createFormSchema(fieldControls.name)
+
+  const form = useForm({
     resolver: zodResolver(formSchema),
-    mode: 'onChange',
+    mode: 'onChange' as const,
     defaultValues: {
       name: '',
       description: '',
@@ -58,17 +55,29 @@ function Demo() {
     reset,
   } = form
 
-  const onSubmit = (data: DynamicFormData) => {
+  const onSubmit = (data: Record<string, unknown>) => {
     console.log('Form submitted:', data)
-    setSubmittedData(data)
+
+    // Validate with current configuration using external schema
+    const validationResult = validateFormData(data, fieldControls)
+
+    if (validationResult.success) {
+      const submissionData: DynamicFormData = {
+        name: fieldControls.name ? String(data.name || '') : '',
+        description: String(data.description || ''),
+      }
+      setSubmittedData(submissionData)
+    } else {
+      console.error('Validation failed:', validationResult.error)
+    }
   }
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
         {/* Form Section - Left Column */}
-        <div className="space-y-6">
-          <h1>Form</h1>
+        <div className="space-y-6 min-w-0">
+          <h1>Dynamic Schema Form</h1>
           <Form {...form}>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {/* Name Field - Conditional */}
@@ -99,7 +108,7 @@ function Demo() {
                       <Textarea placeholder="Enter description" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Describe the main task or objective
+                      Describe the main task or objective (6-500 characters)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -127,10 +136,11 @@ function Demo() {
                     </span>
                   </p>
                   <p>
-                    Total Fields:{' '}
+                    Schema Type:{' '}
                     <span className="text-blue-600">
-                      {(fieldControls.name ? 1 : 0) + 1} (Name:{' '}
-                      {fieldControls.name ? 1 : 0}, Description: 1)
+                      {fieldControls.name
+                        ? 'Full (with name validation)'
+                        : 'Minimal (name optional)'}
                     </span>
                   </p>
                 </div>
@@ -182,16 +192,17 @@ function Demo() {
         </div>
 
         {/* Controls Section - Right Column */}
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0">
           <div className="space-y-2">
+            <h2 className="text-lg font-semibold">Schema Configuration</h2>
             <p className="text-muted-foreground">
-              Check/uncheck the Name field to add or remove it from the form
-              dynamically
+              Toggle field validation to see dynamic schema changes
             </p>
           </div>
 
           <div className="bg-slate-50 p-4 rounded-lg border h-fit sticky top-6">
             <div className="space-y-4">
+              <h3 className="font-medium">Field Controls</h3>
               <div className="flex flex-col gap-3">
                 {/* Name Control */}
                 <label className="flex items-center gap-2 text-sm">
@@ -206,8 +217,22 @@ function Demo() {
                     }}
                     className="rounded"
                   />
-                  <span>Name</span>
+                  <span>Enable Name Validation</span>
                 </label>
+              </div>
+
+              <div className="mt-4 p-3 bg-blue-50 rounded border">
+                <h4 className="text-sm font-medium text-blue-800">
+                  Current Schema Rules:
+                </h4>
+                <div className="text-xs text-blue-700 mt-1 space-y-1">
+                  <div>• Description: Required (6-500 chars)</div>
+                  {fieldControls.name ? (
+                    <div>• Name: Required (1-50 chars)</div>
+                  ) : (
+                    <div>• Name: Optional (not validated)</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
