@@ -27,17 +27,23 @@ function Demo() {
   // Control state for which fields to show
   const [fieldControls, setFieldControls] = useState<FieldConfiguration>({
     name: true, // Control for single name field
+    description: true, // Control for description field
   })
 
   // Dynamic validation schema based on field controls - using external schema file
-  const createFormSchema = useCallback((showName: boolean) => {
-    if (showName) {
+  const createFormSchema = useCallback((config: FieldConfiguration) => {
+    if (config.name && config.description) {
       return presetSchemas.full
+    } else if (config.name && !config.description) {
+      return presetSchemas.nameOnly
+    } else if (!config.name && config.description) {
+      return presetSchemas.descriptionOnly
+    } else {
+      return presetSchemas.minimal
     }
-    return presetSchemas.minimal
   }, [])
 
-  const formSchema = createFormSchema(fieldControls.name)
+  const formSchema = createFormSchema(fieldControls)
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -64,7 +70,9 @@ function Demo() {
     if (validationResult.success) {
       const submissionData: DynamicFormData = {
         name: fieldControls.name ? String(data.name || '') : '',
-        description: String(data.description || ''),
+        description: fieldControls.description
+          ? String(data.description || '')
+          : '',
       }
       setSubmittedData(submissionData)
     } else {
@@ -97,23 +105,25 @@ function Demo() {
                 />
               )}
 
-              {/* Description Field - Always visible */}
-              <FormField
-                control={control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Enter description" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Describe the main task or objective (6-500 characters)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Description Field - Conditional */}
+              {fieldControls.description && (
+                <FormField
+                  control={control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Enter description" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Describe the main task or objective (6-500 characters)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {/* Form Status */}
               <div className="bg-muted p-4 rounded-lg">
@@ -138,9 +148,13 @@ function Demo() {
                   <p>
                     Schema Type:{' '}
                     <span className="text-blue-600">
-                      {fieldControls.name
-                        ? 'Full (with name validation)'
-                        : 'Minimal (name optional)'}
+                      {fieldControls.name && fieldControls.description
+                        ? 'Full (name + description required)'
+                        : fieldControls.name && !fieldControls.description
+                        ? 'Name Only (description optional)'
+                        : !fieldControls.name && fieldControls.description
+                        ? 'Description Only (name optional)'
+                        : 'Minimal (both optional)'}
                     </span>
                   </p>
                 </div>
@@ -172,12 +186,14 @@ function Demo() {
                     </span>
                   </div>
                 )}
-                <div>
-                  <strong className="text-green-800">Description:</strong>
-                  <span className="ml-2 text-green-700">
-                    {submittedData.description}
-                  </span>
-                </div>
+                {submittedData.description && (
+                  <div>
+                    <strong className="text-green-800">Description:</strong>
+                    <span className="ml-2 text-green-700">
+                      {submittedData.description}
+                    </span>
+                  </div>
+                )}
               </div>
               <details className="mt-3">
                 <summary className="cursor-pointer text-green-800 font-medium">
@@ -219,6 +235,22 @@ function Demo() {
                   />
                   <span>Enable Name Validation</span>
                 </label>
+
+                {/* Description Control */}
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={fieldControls.description}
+                    onChange={(e) => {
+                      setFieldControls({
+                        ...fieldControls,
+                        description: e.target.checked,
+                      })
+                    }}
+                    className="rounded"
+                  />
+                  <span>Enable Description Validation</span>
+                </label>
               </div>
 
               <div className="mt-4 p-3 bg-blue-50 rounded border">
@@ -226,11 +258,15 @@ function Demo() {
                   Current Schema Rules:
                 </h4>
                 <div className="text-xs text-blue-700 mt-1 space-y-1">
-                  <div>• Description: Required (6-500 chars)</div>
                   {fieldControls.name ? (
                     <div>• Name: Required (1-50 chars)</div>
                   ) : (
                     <div>• Name: Optional (not validated)</div>
+                  )}
+                  {fieldControls.description ? (
+                    <div>• Description: Required (6-500 chars)</div>
+                  ) : (
+                    <div>• Description: Optional (not validated)</div>
                   )}
                 </div>
               </div>

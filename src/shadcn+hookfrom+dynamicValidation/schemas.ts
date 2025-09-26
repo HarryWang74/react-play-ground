@@ -1,10 +1,9 @@
 import * as z from 'zod'
 
-/**
- * Configuration interface for controlling which fields are active
- */
+// form display state
 export interface FieldConfiguration {
   name: boolean
+  description: boolean
 }
 
 /**
@@ -32,6 +31,7 @@ export const schemaConfigs = {
       .string()
       .min(6, 'Description must be at least 6 characters')
       .max(500, 'Description must be less than 500 characters'),
+    optional: z.string().optional().default(''),
   },
 } as const
 
@@ -43,24 +43,22 @@ export const schemaConfigs = {
  * @returns Zod schema for the specified configuration
  */
 export function createDynamicSchema(config: FieldConfiguration) {
-  if (config.name) {
-    // When name is required
-    return z.object({
-      name: schemaConfigs.name.required,
-      description: schemaConfigs.description.required,
-    }) satisfies z.ZodType<DynamicFormData>
-  } else {
-    // When name is optional, still validate as string but allow empty
-    return z
-      .object({
-        name: z.string().optional().default(''),
-        description: schemaConfigs.description.required,
-      })
-      .transform((data) => ({
-        name: data.name || '',
-        description: data.description,
-      })) satisfies z.ZodType<DynamicFormData>
-  }
+  const nameSchema = config.name
+    ? schemaConfigs.name.required
+    : schemaConfigs.name.optional
+  const descriptionSchema = config.description
+    ? schemaConfigs.description.required
+    : schemaConfigs.description.optional
+
+  return z
+    .object({
+      name: nameSchema,
+      description: descriptionSchema,
+    })
+    .transform((data) => ({
+      name: data.name || '',
+      description: data.description || '',
+    })) satisfies z.ZodType<DynamicFormData>
 }
 
 /**
@@ -72,6 +70,7 @@ export const presetSchemas = {
    */
   full: createDynamicSchema({
     name: true,
+    description: true,
   }),
 
   /**
@@ -79,13 +78,23 @@ export const presetSchemas = {
    */
   minimal: createDynamicSchema({
     name: false,
+    description: false,
   }),
 
   /**
-   * Name only form (description still required as it's always shown)
+   * Name only form (description optional)
    */
   nameOnly: createDynamicSchema({
     name: true,
+    description: false,
+  }),
+
+  /**
+   * Description only form (name optional)
+   */
+  descriptionOnly: createDynamicSchema({
+    name: false,
+    description: true,
   }),
 } as const
 
@@ -132,12 +141,11 @@ export function isValidFormData(
 /**
  * Helper function to get default values based on configuration
  *
- * @param config - Field configuration
  * @returns Default values object
  */
-export function getDefaultValues(config: FieldConfiguration): DynamicFormData {
+export function getDefaultValues(): DynamicFormData {
   return {
-    name: config.name ? '' : '',
+    name: '',
     description: '',
   }
 }
