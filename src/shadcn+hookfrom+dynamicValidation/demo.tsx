@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
@@ -7,13 +7,12 @@ import { Textarea } from '../components/ui/textarea'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { presetSchemas, validateFormData } from './schemas'
+import { createDynamicSchema, validateFormData } from './schemas'
 import type { DynamicFormData, FieldConfiguration } from './schemas'
 
 /**
@@ -30,20 +29,8 @@ function Demo() {
     description: true, // Control for description field
   })
 
-  // Dynamic validation schema based on field controls - using external schema file
-  const createFormSchema = useCallback((config: FieldConfiguration) => {
-    if (config.name && config.description) {
-      return presetSchemas.full
-    } else if (config.name && !config.description) {
-      return presetSchemas.nameOnly
-    } else if (!config.name && config.description) {
-      return presetSchemas.descriptionOnly
-    } else {
-      return presetSchemas.minimal
-    }
-  }, [])
-
-  const formSchema = createFormSchema(fieldControls)
+  // Dynamic validation schema based on field controls - using dynamic schema creation
+  const formSchema = createDynamicSchema(fieldControls)
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -99,7 +86,9 @@ function Demo() {
                       <FormControl>
                         <Input placeholder="Enter name" {...field} />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage
+                        style={{ color: '#dc2626', fontWeight: '500' }}
+                      />
                     </FormItem>
                   )}
                 />
@@ -116,10 +105,9 @@ function Demo() {
                       <FormControl>
                         <Textarea placeholder="Enter description" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        Describe the main task or objective (6-500 characters)
-                      </FormDescription>
-                      <FormMessage />
+                      <FormMessage
+                        style={{ color: '#dc2626', fontWeight: '500' }}
+                      />
                     </FormItem>
                   )}
                 />

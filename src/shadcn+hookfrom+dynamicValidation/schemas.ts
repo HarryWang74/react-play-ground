@@ -62,53 +62,6 @@ export function createDynamicSchema(config: FieldConfiguration) {
 }
 
 /**
- * Predefined schema configurations for common use cases
- */
-export const presetSchemas = {
-  /**
-   * Full form with all fields required
-   */
-  full: createDynamicSchema({
-    name: true,
-    description: true,
-  }),
-
-  /**
-   * Minimal form with only required fields
-   */
-  minimal: createDynamicSchema({
-    name: false,
-    description: false,
-  }),
-
-  /**
-   * Name only form (description optional)
-   */
-  nameOnly: createDynamicSchema({
-    name: true,
-    description: false,
-  }),
-
-  /**
-   * Description only form (name optional)
-   */
-  descriptionOnly: createDynamicSchema({
-    name: false,
-    description: true,
-  }),
-} as const
-
-/**
- * Gets the appropriate schema based on field configuration
- *
- * @param config - Field configuration
- * @returns Zod schema for validation
- */
-export function getSchemaForConfiguration(config: FieldConfiguration) {
-  return createDynamicSchema(config)
-}
-
-/**
  * Validates data against a specific field configuration
  *
  * @param data - Data to validate
