@@ -13,7 +13,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { createDynamicSchema, validateFormData } from './schemas'
-import type { DynamicFormData, FieldConfiguration } from './schemas'
+import type { DynamicFormData, FieldConfiguration } from './types'
 
 /**
  * Demo component showcasing React Hook Form with shadcn/ui and dynamic schema validation from separate file

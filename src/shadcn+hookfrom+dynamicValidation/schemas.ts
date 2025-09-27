@@ -1,18 +1,5 @@
 import * as z from 'zod'
-
-// form display state
-export interface FieldConfiguration {
-  name: boolean
-  description: boolean
-}
-
-/**
- * Base form data type
- */
-export interface DynamicFormData {
-  name: string
-  description: string
-}
+import type { FieldConfiguration, DynamicFormData } from './types'
 
 /**
  * Schema configurations for different validation scenarios
@@ -89,16 +76,4 @@ export function isValidFormData(
 ): data is DynamicFormData {
   const result = validateFormData(data as Partial<DynamicFormData>, config)
   return result.success
-}
-
-/**
- * Helper function to get default values based on configuration
- *
- * @returns Default values object
- */
-export function getDefaultValues(): DynamicFormData {
-  return {
-    name: '',
-    description: '',
-  }
 }
